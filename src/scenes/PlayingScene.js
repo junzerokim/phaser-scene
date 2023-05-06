@@ -38,6 +38,10 @@ export default class PlayingScene extends Phaser.Scene {
     this.m_cursorKeys = this.input.keyboard.createCursorKeys();
 
     this.m_mobs = this.physics.add.group();
+    this.m_mobEvents = [];
+
+    // scene, repeatGap, mobTexture, mobAnim, mobHp, mobDropRate
+    addMobEvent(this, 1000, 'mob1', 'mob1_anim', 10, 0.9);
   }
 
   update() {
