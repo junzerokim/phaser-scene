@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
-import Player from '../characters/Player';
 import Config from '../Config';
+import Player from '../characters/Player';
+import Mob from '../characters/Mob';
 import { setBackground } from '../utils/backgroundManager';
 import { addMobEvent } from '../utils/mobManager';
+import { addAttackEvent } from '../utils/attackManager';
 
 export default class PlayingScene extends Phaser.Scene {
   constructor() {
@@ -37,11 +39,50 @@ export default class PlayingScene extends Phaser.Scene {
 
     this.m_cursorKeys = this.input.keyboard.createCursorKeys();
 
+    // Mob
     this.m_mobs = this.physics.add.group();
+    this.m_mobs.add(new Mob(this, 0, 0, 'mob1', 'mob1_anim', 10));
     this.m_mobEvents = [];
 
     // scene, repeatGap, mobTexture, mobAnim, mobHp, mobDropRate
     addMobEvent(this, 1000, 'mob1', 'mob1_anim', 10, 0.9);
+
+    // Attack
+    this.m_weaponDynamic = this.add.group();
+    this.m_weaponStatic = this.add.group();
+    this.m_attackEvents = {};
+    // scene, attackType, attackDamage, attackScale, repeatGap
+    addAttackEvent(this, 'beam', 10, 1, 1000);
+
+    // collisions
+
+    // Player와 mob이 부딪혔을 경우 player에 데미지 10을 줍니다.
+    // (Player.js에서 hitByMob 함수 확인)
+    this.physics.add.overlap(this.m_player, this.m_mobs, () => this.m_player.hitByMob(10), null, this);
+
+    // mob이 dynamic 공격에 부딪혔을 경우 mob에 해당 공격의 데미지만큼 데미지를 줍니다.
+    // (Mob.js에서 hitByDynamic 함수 확인)
+    this.physics.add.overlap(
+      this.m_weaponDynamic,
+      this.m_mobs,
+      (weapon, mob) => {
+        mob.hitByDynamic(weapon, weapon.m_damage);
+      },
+      null,
+      this
+    );
+
+    // mob이 static 공격에 부딪혔을 경우 mob에 해당 공격의 데미지만큼 데미지를 줍니다.
+    // (Mob.js에서 hitByStatic 함수 확인)
+    this.physics.add.overlap(
+      this.m_weaponStatic,
+      this.m_mobs,
+      (weapon, mob) => {
+        mob.hitByDynamic(weapon.m_damage);
+      },
+      null,
+      this
+    );
   }
 
   update() {
@@ -52,6 +93,9 @@ export default class PlayingScene extends Phaser.Scene {
 
     this.m_background.tilePositionX = this.m_player.x - Config.width / 2;
     this.m_background.tilePositionY = this.m_player.y - Config.height / 2;
+
+    const closest = this.physics.closest(this.m_player, this.m_mobs.getChildren());
+    this.m_closest = closest;
   }
 
   movePlayerManager() {
